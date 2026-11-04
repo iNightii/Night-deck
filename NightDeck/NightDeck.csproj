@@ -13,5 +13,6 @@
   <ItemGroup>
     <Content Include="assets\recompra.js" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="assets\classic-toolbar.html" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="assets\NightDeck.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

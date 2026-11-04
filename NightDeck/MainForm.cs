@@ -22,6 +22,7 @@ public sealed class MainForm : Form
     private bool echoEnabled;
     private string layout = "2x2";
     private int? focused;
+    private string UiSettingsPath => Path.Combine(dataPath, "ui-settings.json");
 
     public MainForm()
     {
@@ -31,14 +32,15 @@ public sealed class MainForm : Form
         Controls.Add(grid);
         Controls.Add(toolbar);
         Directory.CreateDirectory(dataPath);
+        LoadUiSettings();
         for (int i = 0; i < 4; i++)
         {
             restock[i] = LoadRestock(i);
             CreatePane(i);
         }
-        AddButton("Grade 2x2", () => { focused = null; layout = "2x2"; Rebuild(); });
-        AddButton("Vertical 1x4", () => { focused = null; layout = "1x4"; Rebuild(); });
-        AddButton("Mostrar todas", () => { for (int i = 0; i < 4; i++) visible[i] = true; focused = null; Rebuild(); });
+        AddButton("Grade 2x2", () => { focused = null; layout = "2x2"; Rebuild(); SaveUiSettings(); });
+        AddButton("Vertical 1x4", () => { focused = null; layout = "1x4"; Rebuild(); SaveUiSettings(); });
+        AddButton("Mostrar todas", () => { for (int i = 0; i < 4; i++) visible[i] = true; focused = null; Rebuild(); SaveUiSettings(); });
         AddButton("Echo: desligado", ToggleEcho, "echoButton");
         AddButton("Configurar Echo", ConfigureEcho);
         AddButton("Restock", ConfigureRestock);
@@ -74,7 +76,7 @@ public sealed class MainForm : Form
         bar.Controls.Add(PaneButton("+", () => ChangeZoom(i, 10)));
         bar.Controls.Add(PaneButton("⟳", () => browsers[i].CoreWebView2?.Reload()));
         bar.Controls.Add(PaneButton("Foco", () => { focused = focused == i ? null : i; Rebuild(); }));
-        bar.Controls.Add(PaneButton("Ocultar", () => { visible[i] = false; focused = null; Rebuild(); }));
+        bar.Controls.Add(PaneButton("Ocultar", () => { visible[i] = false; focused = null; Rebuild(); SaveUiSettings(); }));
         var browser = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(15, 15, 22) };
         panel.Controls.Add(browser);
         panel.Controls.Add(bar);
@@ -315,10 +317,49 @@ public sealed class MainForm : Form
         foreach (string dir in Directory.EnumerateDirectories(source)) CopyDirectory(dir, Path.Combine(dest, Path.GetFileName(dir)));
     }
 
+    private void LoadUiSettings()
+    {
+        try
+        {
+            if (!File.Exists(UiSettingsPath)) return;
+            using var document = JsonDocument.Parse(File.ReadAllText(UiSettingsPath));
+            var root = document.RootElement;
+            if (root.TryGetProperty("layout", out var savedLayout))
+            {
+                var value = savedLayout.GetString();
+                if (value is "2x2" or "1x4") layout = value;
+            }
+            if (root.TryGetProperty("zoom", out var savedZoom) && savedZoom.ValueKind == JsonValueKind.Array)
+            {
+                for (int i = 0; i < Math.Min(4, savedZoom.GetArrayLength()); i++)
+                    if (savedZoom[i].TryGetInt32(out var value)) zoom[i] = Math.Clamp(value, 40, 150);
+            }
+            if (root.TryGetProperty("visible", out var savedVisible) && savedVisible.ValueKind == JsonValueKind.Array)
+            {
+                for (int i = 0; i < Math.Min(4, savedVisible.GetArrayLength()); i++)
+                    if (savedVisible[i].ValueKind is JsonValueKind.True or JsonValueKind.False)
+                        visible[i] = savedVisible[i].GetBoolean();
+                if (!visible.Any(v => v)) visible[0] = true;
+            }
+        }
+        catch { /* Configuracao ausente ou corrompida: usar padroes. */ }
+    }
+
+    private void SaveUiSettings()
+    {
+        try
+        {
+            var settings = new { layout, zoom, visible };
+            File.WriteAllText(UiSettingsPath, JsonSerializer.Serialize(settings));
+        }
+        catch { /* Falha de escrita nao deve interromper o jogo. */ }
+    }
+
     private void ChangeZoom(int i, int delta)
     {
         zoom[i] = Math.Clamp(zoom[i] + delta, 40, 150);
         if (browsers[i].CoreWebView2 != null) browsers[i].ZoomFactor = zoom[i] / 100.0;
+        SaveUiSettings();
     }
     private void Rebuild()
     {

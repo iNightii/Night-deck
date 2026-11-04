@@ -9,6 +9,7 @@ namespace NightDeck;
 public sealed class MainForm : Form
 {
     private readonly FlowLayoutPanel toolbar = new() { Dock = DockStyle.Top, Height = 42, WrapContents = false, AutoScroll = true, BackColor = Color.FromArgb(17, 24, 39), Padding = new Padding(7, 4, 7, 4) };
+    private readonly WebView2 classicToolbar = new() { Dock = DockStyle.Top, Height = 43, DefaultBackgroundColor = Color.FromArgb(17, 24, 39) };
     private readonly TableLayoutPanel grid = new() { Dock = DockStyle.Fill, Margin = Padding.Empty, Padding = Padding.Empty };
     private readonly WebView2[] browsers = new WebView2[4];
     private readonly Panel[] panes = new Panel[4];
@@ -32,7 +33,9 @@ public sealed class MainForm : Form
         WindowState = FormWindowState.Maximized;
         BackColor = Color.FromArgb(11, 17, 32);
         Controls.Add(grid);
+        Controls.Add(classicToolbar);
         Controls.Add(toolbar);
+        toolbar.Visible = false;
         Directory.CreateDirectory(dataPath);
         LoadUiSettings();
         for (int i = 0; i < 4; i++)
@@ -53,7 +56,38 @@ public sealed class MainForm : Form
         AddButton("⌕  Onde caçar", () => OpenSite("https://pokeidle-ferramentas.pages.dev/#hunt", "Onde caçar"));
         AddButton("↻  Atualizações", () => _ = AutoUpdater.CheckAsync(this, manual: true));
         Rebuild();
-        Shown += async (_, _) => { await InitializeBrowsers(); _ = AutoUpdater.CheckAsync(this); };
+        Shown += async (_, _) => { await InitializeClassicToolbar(); await InitializeBrowsers(); _ = AutoUpdater.CheckAsync(this); };
+    }
+
+    private async Task InitializeClassicToolbar()
+    {
+        try
+        {
+            var environment = await CoreWebView2Environment.CreateAsync(
+                userDataFolder: Path.Combine(dataPath, "classic-toolbar"));
+            await classicToolbar.EnsureCoreWebView2Async(environment);
+            classicToolbar.CoreWebView2.Settings.IsStatusBarEnabled = false;
+            classicToolbar.CoreWebView2.Settings.AreDevToolsEnabled = false;
+            classicToolbar.CoreWebView2.WebMessageReceived += (_, args) =>
+            {
+                try
+                {
+                    int index = JsonSerializer.Deserialize<int>(args.WebMessageAsJson);
+                    if (index >= 0 && index < toolbar.Controls.Count &&
+                        toolbar.Controls[index] is Button button)
+                        button.PerformClick();
+                }
+                catch { }
+            };
+            string file = Path.Combine(AppContext.BaseDirectory, "assets", "classic-toolbar.html");
+            classicToolbar.CoreWebView2.Navigate(new Uri(file).AbsoluteUri);
+        }
+        catch (Exception ex)
+        {
+            classicToolbar.Visible = false;
+            toolbar.Visible = true;
+            MessageBox.Show("Barra classica indisponivel: " + ex.Message, "Night Deck");
+        }
     }
 
     private readonly Dictionary<string, Button> buttons = new();

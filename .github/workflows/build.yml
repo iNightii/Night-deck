@@ -52,10 +52,3 @@ jobs:
           $tag = "build-${{ github.run_id }}"
           gh release create $tag Night-Deck-Windows-x64.zip --repo "${{ github.repository }}" --title "Night Deck $tag" --notes "Compilacao automatica do Night Deck." --latest
 
-      - name: Publicar executavel
-        uses: actions/upload-artifact@v5
-        with:
-          name: Night-Deck-Windows-x64
-          path: publish/
-          if-no-files-found: error
-          retention-days: 14

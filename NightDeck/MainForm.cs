@@ -76,9 +76,7 @@ public sealed class MainForm : Form
                     if (message.RootElement.ValueKind == JsonValueKind.Number)
                     {
                         int index = message.RootElement.GetInt32();
-                        if (index >= 0 && index < toolbar.Controls.Count &&
-                            toolbar.Controls[index] is Button button)
-                            button.PerformClick();
+                        ExecuteToolbarCommand(index);
                     }
                     else if (message.RootElement.ValueKind == JsonValueKind.Object)
                     {
@@ -126,6 +124,49 @@ public sealed class MainForm : Form
             toolbar.Visible = true;
             MessageBox.Show("Barra classica indisponivel: " + ex.Message, "Night Deck");
         }
+    }
+
+    private void ExecuteToolbarCommand(int index)
+    {
+        // A barra WinForms fica invisivel. PerformClick() em botoes invisiveis
+        // nao e confiavel; executar diretamente as acoes do menu HTML.
+        switch (index)
+        {
+            case 0:
+                focused = null;
+                layout = "2x2";
+                Rebuild();
+                SaveUiSettings();
+                break;
+            case 1:
+                focused = null;
+                layout = "1x4";
+                Rebuild();
+                SaveUiSettings();
+                break;
+            case 2:
+                Array.Fill(visible, true);
+                focused = null;
+                Rebuild();
+                SaveUiSettings();
+                break;
+            case 3: ToggleEcho(); break;
+            case 4: ConfigureEcho(); break;
+            case 5: ConfigureRestock(); break;
+            case 6: ImportExtensions(); break;
+            case 7:
+                foreach (var browser in browsers) browser.CoreWebView2?.Reload();
+                break;
+            case 8:
+                FormBorderStyle = FormBorderStyle == FormBorderStyle.None
+                    ? FormBorderStyle.Sizable : FormBorderStyle.None;
+                WindowState = FormWindowState.Maximized;
+                break;
+            case 9: OpenSite("https://multitwitch.tv/", "MultiTwitch"); break;
+            case 10: OpenSite("https://pokeidle-ferramentas.pages.dev/#hunt", "Onde caçar"); break;
+            case 11: _ = AutoUpdater.CheckAsync(this, manual: true); break;
+        }
+        UpdateClassicToolbar();
     }
 
     private void UpdateClassicToolbar()

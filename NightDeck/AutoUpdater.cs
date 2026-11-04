@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.IO.Compression;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -7,7 +9,16 @@ namespace NightDeck;
 internal static class AutoUpdater
 {
     private const string Repo = "iNightii/Night-deck";
-    private const string Artifact = "Night-Deck-Windows-x64";
+    private const string Artifact = "Night-Deck-Windows-x64.zip";
+    private static readonly HttpClient client = CreateClient();
+
+    private static HttpClient CreateClient()
+    {
+        var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+        http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("NightDeck", "1.0"));
+        http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+        return http;
+    }
     private static bool checking;
 
     public static async Task CheckAsync(Form window, bool manual = false)
@@ -20,35 +31,40 @@ internal static class AutoUpdater
             var currentText = File.Exists(Path.Combine(install, "build-id.txt"))
                 ? File.ReadAllText(Path.Combine(install, "build-id.txt")).Trim() : "0";
             if (!long.TryParse(currentText, out var current)) current = 0;
-            var (status, json) = await RunGhAsync("run", "list", "-R", Repo, "--workflow", "build.yml",
-                "--json", "databaseId,conclusion", "--limit", "15");
-            if (status != 0)
-            {
-                if (manual) MessageBox.Show("Para atualizar pelo repositorio privado, instale GitHub CLI e execute 'gh auth login' uma vez.\n\n" + json, "Atualizacoes");
-                return;
-            }
+            string json = await client.GetStringAsync("https://api.github.com/repos/" + Repo + "/releases/latest");
             using var document = JsonDocument.Parse(json);
-            long newest = 0;
-            foreach (var run in document.RootElement.EnumerateArray())
-            {
-                if (run.GetProperty("conclusion").GetString() != "success") continue;
-                long id = run.GetProperty("databaseId").GetInt64();
-                if (id > newest) newest = id;
-            }
-            if (newest == 0 || newest <= current)
+            string tag = document.RootElement.GetProperty("tag_name").GetString() ?? "";
+            if (!tag.StartsWith("build-", StringComparison.Ordinal) ||
+                !long.TryParse(tag.AsSpan(6), out long newest))
+                throw new InvalidDataException("Release sem numero de compilacao valido.");
+            if (newest <= current)
             {
                 if (manual) MessageBox.Show("Voce ja esta na versao mais recente.", "Atualizacoes");
                 return;
             }
+            string? downloadUrl = null;
+            foreach (var asset in document.RootElement.GetProperty("assets").EnumerateArray())
+                if (asset.GetProperty("name").GetString() == Artifact)
+                    downloadUrl = asset.GetProperty("browser_download_url").GetString();
+            if (downloadUrl == null ||
+                !Uri.TryCreate(downloadUrl, UriKind.Absolute, out var downloadUri) ||
+                downloadUri.Scheme != Uri.UriSchemeHttps ||
+                !downloadUri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Arquivo de atualizacao indisponivel ou endereco invalido.");
             string stage = Path.Combine(Path.GetTempPath(), "NightDeck-update-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(stage);
-            var (downloadStatus, details) = await RunGhAsync("run", "download", newest.ToString(),
-                "-R", Repo, "-n", Artifact, "-D", stage);
-            if (downloadStatus != 0)
+            string archive = Path.Combine(stage, "download.zip");
+            using (var response = await client.GetAsync(downloadUri, HttpCompletionOption.ResponseHeadersRead))
             {
-                if (manual) MessageBox.Show("Nao foi possivel baixar a atualizacao:\n" + details, "Atualizacoes");
-                return;
+                response.EnsureSuccessStatusCode();
+                await using var remote = await response.Content.ReadAsStreamAsync();
+                await using var local = File.Create(archive);
+                await remote.CopyToAsync(local);
             }
+            string extracted = Path.Combine(stage, "package");
+            Directory.CreateDirectory(extracted);
+            ZipFile.ExtractToDirectory(archive, extracted);
+            stage = extracted;
             string executable = Path.Combine(stage, "NightDeck.exe");
             string sums = Path.Combine(stage, "SHA256SUMS.txt");
             string buildId = Path.Combine(stage, "build-id.txt");
@@ -112,22 +128,4 @@ try {
         finally { checking = false; }
     }
 
-    private static async Task<(int code, string output)> RunGhAsync(params string[] args)
-    {
-        var start = new ProcessStartInfo("gh")
-        {
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
-        };
-        foreach (var arg in args) start.ArgumentList.Add(arg);
-        using var process = Process.Start(start) ?? throw new InvalidOperationException("GitHub CLI indisponivel.");
-        var outputTask = process.StandardOutput.ReadToEndAsync();
-        var errorTask = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        var output = await outputTask;
-        var error = await errorTask;
-        return (process.ExitCode, process.ExitCode == 0 ? output : error);
-    }
 }

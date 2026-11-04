@@ -72,10 +72,48 @@ public sealed class MainForm : Form
             {
                 try
                 {
-                    int index = JsonSerializer.Deserialize<int>(args.WebMessageAsJson);
-                    if (index >= 0 && index < toolbar.Controls.Count &&
-                        toolbar.Controls[index] is Button button)
-                        button.PerformClick();
+                    using var message = JsonDocument.Parse(args.WebMessageAsJson);
+                    if (message.RootElement.ValueKind == JsonValueKind.Number)
+                    {
+                        int index = message.RootElement.GetInt32();
+                        if (index >= 0 && index < toolbar.Controls.Count &&
+                            toolbar.Controls[index] is Button button)
+                            button.PerformClick();
+                    }
+                    else if (message.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        var root = message.RootElement;
+                        string? kind = root.GetProperty("type").GetString();
+                        if (kind == "ready") { UpdateClassicToolbar(); return; }
+                        if (kind == "zoom")
+                        {
+                            int delta = root.GetProperty("delta").GetInt32();
+                            int next = delta == 0 ? 100 : Math.Clamp(zoom[0] + delta, 40, 150);
+                            for (int i = 0; i < 4; i++)
+                            {
+                                zoom[i] = next;
+                                if (browsers[i].CoreWebView2 != null)
+                                    browsers[i].ZoomFactor = next / 100.0;
+                            }
+                            SaveUiSettings();
+                        }
+                        else if (kind == "focus" || kind == "visibility")
+                        {
+                            int i = root.GetProperty("account").GetInt32();
+                            if (i < 0 || i >= 4) return;
+                            if (kind == "visibility")
+                            {
+                                visible[i] = !visible[i];
+                                if (!visible.Any(v => v)) visible[i] = true;
+                                if (focused == i) focused = null;
+                            }
+                            else if (!visible[i]) { visible[i] = true; focused = null; }
+                            else focused = focused == i ? null : i;
+                            Rebuild();
+                            SaveUiSettings();
+                        }
+                        UpdateClassicToolbar();
+                    }
                 }
                 catch { }
             };
@@ -88,6 +126,13 @@ public sealed class MainForm : Form
             toolbar.Visible = true;
             MessageBox.Show("Barra classica indisponivel: " + ex.Message, "Night Deck");
         }
+    }
+
+    private void UpdateClassicToolbar()
+    {
+        if (classicToolbar.CoreWebView2 == null) return;
+        var state = JsonSerializer.Serialize(new { type = "state", focused, visible, zoom = zoom[0] });
+        classicToolbar.CoreWebView2.PostWebMessageAsJson(state);
     }
 
     private readonly Dictionary<string, Button> buttons = new();
@@ -469,6 +514,7 @@ public sealed class MainForm : Form
         zoom[i] = Math.Clamp(zoom[i] + delta, 40, 150);
         if (browsers[i].CoreWebView2 != null) browsers[i].ZoomFactor = zoom[i] / 100.0;
         SaveUiSettings();
+        UpdateClassicToolbar();
     }
     private void Rebuild()
     {
@@ -484,6 +530,7 @@ public sealed class MainForm : Form
         for (int r = 0; r < rows; r++) grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100f / rows));
         for (int n = 0; n < indices.Length; n++) grid.Controls.Add(panes[indices[n]], n % columns, n / columns);
         grid.ResumeLayout(true);
+        UpdateClassicToolbar();
     }
     private void OpenSite(string url, string title)
     {

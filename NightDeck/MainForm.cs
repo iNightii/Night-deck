@@ -172,7 +172,7 @@ public sealed class MainForm : Form
     private void UpdateClassicToolbar()
     {
         if (classicToolbar.CoreWebView2 == null) return;
-        var state = JsonSerializer.Serialize(new { type = "state", focused, visible, zoom = zoom[0] });
+        var state = JsonSerializer.Serialize(new { type = "state", focused, visible, zoom = zoom[0], layout, echoEnabled });
         classicToolbar.CoreWebView2.PostWebMessageAsJson(state);
     }
 
@@ -345,6 +345,7 @@ public sealed class MainForm : Form
     {
         echoEnabled = !echoEnabled;
         buttons["echoButton"].Text = echoEnabled ? "⇄  Echo: ON" : "⇄  Echo: OFF";
+        UpdateClassicToolbar();
     }
     private void ConfigureEcho()
     {

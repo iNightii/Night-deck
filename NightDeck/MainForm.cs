@@ -564,8 +564,8 @@ public sealed class MainForm : Form
         grid.Controls.Clear(); grid.ColumnStyles.Clear(); grid.RowStyles.Clear();
         var indices = Enumerable.Range(0, 4).Where(i => visible[i] && (focused == null || focused == i)).ToArray();
         if (indices.Length == 0) { visible[0] = true; indices = new[] { 0 }; }
-        // Vertical 1x4: quatro painéis altos, lado a lado (uma única linha).
-        int columns = focused != null ? 1 : layout == "1x4" ? indices.Length : Math.Min(2, indices.Length);
+        // Vertical 1x4: contas empilhadas de cima para baixo, uma por linha.
+        int columns = focused != null || layout == "1x4" ? 1 : Math.Min(2, indices.Length);
         int rows = (int)Math.Ceiling(indices.Length / (double)columns);
         grid.ColumnCount = columns; grid.RowCount = rows;
         for (int c = 0; c < columns; c++) grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / columns));

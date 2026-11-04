@@ -29,6 +29,10 @@ jobs:
       - name: Compilar Night Deck
         run: dotnet publish NightDeck/NightDeck.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
 
+      - name: Gravar identificador da compilacao
+        shell: pwsh
+        run: Set-Content -Path publish/build-id.txt -Value "${{ github.run_id }}" -Encoding ascii
+
       - name: Gerar SHA-256
         shell: pwsh
         run: |

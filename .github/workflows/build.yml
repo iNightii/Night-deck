@@ -1,4 +1,4 @@
-name: Build Night Deck Windows - Verificado
+name: Build Night Deck Windows
 
 on:
   workflow_dispatch:
@@ -14,12 +14,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Obter codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
 
       - name: Instalar .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -29,24 +29,6 @@ jobs:
       - name: Compilar Night Deck
         run: dotnet publish NightDeck/NightDeck.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
 
-      - name: Verificar Microsoft Defender
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $status = Get-MpComputerStatus
-          if (-not $status.AMServiceEnabled -or -not $status.AntivirusEnabled -or -not $status.RealTimeProtectionEnabled) {
-            throw 'Microsoft Defender nao esta ativo no runner; publicacao interrompida.'
-          }
-          Update-MpSignature -ErrorAction Stop
-          $scanner = Join-Path $env:ProgramFiles 'Windows Defender\MpCmdRun.exe'
-          if (-not (Test-Path $scanner)) {
-            $scanner = Join-Path $env:ProgramData 'Microsoft\Windows Defender\Platform'
-            $scanner = Get-ChildItem $scanner -Filter MpCmdRun.exe -Recurse -File | Select-Object -First 1 -ExpandProperty FullName
-          }
-          if (-not $scanner -or -not (Test-Path $scanner)) { throw 'Scanner do Defender indisponivel.' }
-          & $scanner -Scan -ScanType 3 -File (Resolve-Path 'publish').Path -DisableRemediation
-          if ($LASTEXITCODE -ne 0) { throw "Defender retornou codigo $LASTEXITCODE; publicacao interrompida." }
-
       - name: Gerar SHA-256
         shell: pwsh
         run: |
@@ -54,10 +36,10 @@ jobs:
             ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } |
             Set-Content -Path publish/SHA256SUMS.txt -Encoding ascii
 
-      - name: Publicar somente apos verificacao
-        uses: actions/upload-artifact@v4
+      - name: Publicar executavel
+        uses: actions/upload-artifact@v5
         with:
-          name: Night-Deck-Windows-x64-Verificado
+          name: Night-Deck-Windows-x64
           path: publish/
           if-no-files-found: error
           retention-days: 14

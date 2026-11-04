@@ -22,7 +22,6 @@ public sealed class MainForm : Form
     private bool echoEnabled;
     private string layout = "2x2";
     private int? focused;
-    private bool ready;
 
     public MainForm()
     {
@@ -122,7 +121,6 @@ public sealed class MainForm : Form
             }
             catch (Exception ex) { MessageBox.Show($"Conta {i + 1}: {ex.Message}", "Erro WebView2"); }
         }
-        ready = true;
     }
 
     private async void HandleEcho(int source, string message)

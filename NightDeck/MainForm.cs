@@ -8,7 +8,7 @@ namespace NightDeck;
 
 public sealed class MainForm : Form
 {
-    private readonly FlowLayoutPanel toolbar = new() { Dock = DockStyle.Top, Height = 44, WrapContents = false, AutoScroll = true, BackColor = Color.FromArgb(24, 27, 35) };
+    private readonly FlowLayoutPanel toolbar = new() { Dock = DockStyle.Top, Height = 42, WrapContents = false, AutoScroll = true, BackColor = Color.FromArgb(17, 24, 39), Padding = new Padding(7, 4, 7, 4) };
     private readonly TableLayoutPanel grid = new() { Dock = DockStyle.Fill, Margin = Padding.Empty, Padding = Padding.Empty };
     private readonly WebView2[] browsers = new WebView2[4];
     private readonly Panel[] panes = new Panel[4];
@@ -26,9 +26,11 @@ public sealed class MainForm : Form
 
     public MainForm()
     {
-        Text = "Night Deck — C# 0.2 (experimental)";
+        Text = "Night Deck";
+        Font = new Font("Segoe UI", 9f);
+        MinimumSize = new Size(800, 500);
         WindowState = FormWindowState.Maximized;
-        BackColor = Color.FromArgb(15, 18, 25);
+        BackColor = Color.FromArgb(11, 17, 32);
         Controls.Add(grid);
         Controls.Add(toolbar);
         Directory.CreateDirectory(dataPath);
@@ -38,45 +40,117 @@ public sealed class MainForm : Form
             restock[i] = LoadRestock(i);
             CreatePane(i);
         }
-        AddButton("Grade 2x2", () => { focused = null; layout = "2x2"; Rebuild(); SaveUiSettings(); });
-        AddButton("Vertical 1x4", () => { focused = null; layout = "1x4"; Rebuild(); SaveUiSettings(); });
-        AddButton("Mostrar todas", () => { for (int i = 0; i < 4; i++) visible[i] = true; focused = null; Rebuild(); SaveUiSettings(); });
-        AddButton("Echo: desligado", ToggleEcho, "echoButton");
-        AddButton("Configurar Echo", ConfigureEcho);
-        AddButton("Restock", ConfigureRestock);
-        AddButton("Importar extensões", ImportExtensions);
-        AddButton("Recarregar todas", () => { foreach (var b in browsers) b.CoreWebView2?.Reload(); });
-        AddButton("Tela cheia", () => { FormBorderStyle = FormBorderStyle == FormBorderStyle.None ? FormBorderStyle.Sizable : FormBorderStyle.None; WindowState = FormWindowState.Maximized; });
-        AddButton("MultiTwitch", () => OpenSite("https://multitwitch.tv/", "MultiTwitch"));
-        AddButton("Onde caçar", () => OpenSite("https://pokeidle-ferramentas.pages.dev/#hunt", "Onde caçar"));
+        AddButton("▦  2×2", () => { focused = null; layout = "2x2"; Rebuild(); SaveUiSettings(); });
+        AddButton("☷  1×4", () => { focused = null; layout = "1x4"; Rebuild(); SaveUiSettings(); });
+        AddButton("◉  Contas", () => { for (int i = 0; i < 4; i++) visible[i] = true; focused = null; Rebuild(); SaveUiSettings(); });
+        AddButton("⇄  Echo: OFF", ToggleEcho, "echoButton");
+        AddButton("⚙  Echo", ConfigureEcho);
+        AddButton("🛒  Restock", ConfigureRestock);
+        AddButton("⬇  Extensões", ImportExtensions);
+        AddButton("⟳  Recarregar", () => { foreach (var b in browsers) b.CoreWebView2?.Reload(); });
+        AddButton("⛶  Tela cheia", () => { FormBorderStyle = FormBorderStyle == FormBorderStyle.None ? FormBorderStyle.Sizable : FormBorderStyle.None; WindowState = FormWindowState.Maximized; });
+        AddButton("▶  MultiTwitch", () => OpenSite("https://multitwitch.tv/", "MultiTwitch"));
+        AddButton("⌕  Onde caçar", () => OpenSite("https://pokeidle-ferramentas.pages.dev/#hunt", "Onde caçar"));
         Rebuild();
         Shown += async (_, _) => await InitializeBrowsers();
     }
 
     private readonly Dictionary<string, Button> buttons = new();
+
+    private static Button NightButton(string label, int height = 27)
+    {
+        var b = new Button
+        {
+            Text = label,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            MinimumSize = new Size(27, height),
+            Height = height,
+            FlatStyle = FlatStyle.Flat,
+            ForeColor = Color.FromArgb(248, 250, 252),
+            BackColor = Color.FromArgb(30, 41, 59),
+            Font = new Font("Segoe UI", 8.5f, FontStyle.Regular),
+            Padding = new Padding(5, 0, 5, 0),
+            Margin = new Padding(3, 2, 3, 2),
+            Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false
+        };
+        b.FlatAppearance.BorderColor = Color.FromArgb(51, 65, 85);
+        b.FlatAppearance.BorderSize = 1;
+        b.FlatAppearance.MouseOverBackColor = Color.FromArgb(51, 65, 85);
+        b.FlatAppearance.MouseDownBackColor = Color.FromArgb(91, 33, 182);
+        return b;
+    }
+
     private void AddButton(string label, Action action, string? key = null)
     {
-        var b = new Button { Text = label, AutoSize = true, Height = 30, FlatStyle = FlatStyle.Flat, ForeColor = Color.White, BackColor = Color.FromArgb(39, 46, 62), Margin = new Padding(3, 5, 3, 3) };
+        var b = NightButton(label, 30);
         b.Click += (_, _) => action();
         toolbar.Controls.Add(b);
         if (key != null) buttons[key] = b;
     }
-    private Button PaneButton(string label, Action action)
+
+    private Button PaneButton(string label, Action action, string tooltip)
     {
-        var b = new Button { Text = label, AutoSize = true, Height = 25, FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(40, 48, 64), ForeColor = Color.White, Margin = new Padding(2) };
+        var b = NightButton(label, 23);
+        b.Font = new Font("Segoe UI Symbol", 9f);
+        b.Padding = new Padding(3, 0, 3, 0);
+        b.Margin = new Padding(2, 2, 2, 2);
         b.Click += (_, _) => action();
+        new ToolTip().SetToolTip(b, tooltip);
         return b;
     }
+
     private void CreatePane(int i)
     {
-        var panel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(18, 20, 27), Margin = new Padding(2) };
-        var bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 31, WrapContents = false, AutoScroll = true, BackColor = Color.FromArgb(24, 28, 39) };
-        bar.Controls.Add(new Label { Text = $"Conta {i + 1}", AutoSize = true, ForeColor = Color.White, Padding = new Padding(3, 7, 3, 0) });
-        bar.Controls.Add(PaneButton("−", () => ChangeZoom(i, -10)));
-        bar.Controls.Add(PaneButton("+", () => ChangeZoom(i, 10)));
-        bar.Controls.Add(PaneButton("⟳", () => browsers[i].CoreWebView2?.Reload()));
-        bar.Controls.Add(PaneButton("Foco", () => { focused = focused == i ? null : i; Rebuild(); }));
-        bar.Controls.Add(PaneButton("Ocultar", () => { visible[i] = false; focused = null; Rebuild(); SaveUiSettings(); }));
+        var panel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(23, 32, 51),
+            Margin = new Padding(3),
+            Padding = new Padding(1)
+        };
+        var bar = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            Height = 31,
+            WrapContents = false,
+            AutoScroll = true,
+            BackColor = Color.FromArgb(17, 24, 39),
+            Padding = new Padding(4, 2, 4, 2)
+        };
+        var status = new Label
+        {
+            Text = "●",
+            AutoSize = true,
+            ForeColor = Color.FromArgb(34, 197, 94),
+            Font = new Font("Segoe UI", 10f),
+            Padding = new Padding(0, 3, 0, 0)
+        };
+        bar.Controls.Add(status);
+        bar.Controls.Add(new Label
+        {
+            Text = $"Conta {i + 1}",
+            AutoSize = true,
+            ForeColor = Color.FromArgb(248, 250, 252),
+            Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+            Padding = new Padding(2, 5, 7, 0)
+        });
+        var zoomText = new Label
+        {
+            Text = $"{zoom[i]}%",
+            AutoSize = true,
+            ForeColor = Color.FromArgb(148, 163, 184),
+            Font = new Font("Segoe UI", 8f),
+            Padding = new Padding(1, 6, 1, 0)
+        };
+        bar.Controls.Add(PaneButton("−", () => { ChangeZoom(i, -10); zoomText.Text = $"{zoom[i]}%"; }, "Diminuir zoom"));
+        bar.Controls.Add(zoomText);
+        bar.Controls.Add(PaneButton("+", () => { ChangeZoom(i, 10); zoomText.Text = $"{zoom[i]}%"; }, "Aumentar zoom"));
+        bar.Controls.Add(PaneButton("🛒", ConfigureRestock, "Configurar Restock"));
+        bar.Controls.Add(PaneButton("⟳", () => browsers[i].CoreWebView2?.Reload(), "Recarregar conta"));
+        bar.Controls.Add(PaneButton("⛶", () => { focused = focused == i ? null : i; Rebuild(); }, "Expandir ou restaurar conta"));
+        bar.Controls.Add(PaneButton("◌", () => { visible[i] = false; focused = null; Rebuild(); SaveUiSettings(); }, "Ocultar conta"));
         var browser = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(15, 15, 22) };
         panel.Controls.Add(browser);
         panel.Controls.Add(bar);
@@ -149,7 +223,7 @@ public sealed class MainForm : Form
     private void ToggleEcho()
     {
         echoEnabled = !echoEnabled;
-        buttons["echoButton"].Text = echoEnabled ? "Echo: ligado" : "Echo: desligado";
+        buttons["echoButton"].Text = echoEnabled ? "⇄  Echo: ON" : "⇄  Echo: OFF";
     }
     private void ConfigureEcho()
     {

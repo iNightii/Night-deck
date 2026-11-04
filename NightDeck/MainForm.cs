@@ -51,8 +51,9 @@ public sealed class MainForm : Form
         AddButton("⛶  Tela cheia", () => { FormBorderStyle = FormBorderStyle == FormBorderStyle.None ? FormBorderStyle.Sizable : FormBorderStyle.None; WindowState = FormWindowState.Maximized; });
         AddButton("▶  MultiTwitch", () => OpenSite("https://multitwitch.tv/", "MultiTwitch"));
         AddButton("⌕  Onde caçar", () => OpenSite("https://pokeidle-ferramentas.pages.dev/#hunt", "Onde caçar"));
+        AddButton("↻  Atualizações", () => _ = AutoUpdater.CheckAsync(this, manual: true));
         Rebuild();
-        Shown += async (_, _) => await InitializeBrowsers();
+        Shown += async (_, _) => { await InitializeBrowsers(); _ = AutoUpdater.CheckAsync(this); };
     }
 
     private readonly Dictionary<string, Button> buttons = new();

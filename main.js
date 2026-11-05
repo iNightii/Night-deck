@@ -1096,6 +1096,7 @@ app.whenReady().then(() => {
     for (const result of results) logLine(result);
   } catch (e) { logLine(`Falha ao aplicar imports de extensão: ${e.stack || e}`); }
   createWindow();
+  setTimeout(() => { void checkNightDeckUpdates(); }, 30000);
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (!win) createWindow(); });

@@ -609,11 +609,11 @@ function openTwitchWindow() {
   twitchWindow = new BrowserWindow({
     parent: win,
     show: false,
-    width: 540,
-    height: 860,
-    minWidth: 480,
-    minHeight: 560,
-    title: 'Twitch · Chat',
+    width: 510,
+    height: 590,
+    minWidth: 450,
+    minHeight: 420,
+    title: 'Twitch',
     autoHideMenuBar: true,
     backgroundColor: currentTheme.bar,
     webPreferences: { preload: path.join(__dirname, 'twitch-preload.js'), contextIsolation: true, sandbox: true }

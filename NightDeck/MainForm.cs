@@ -28,6 +28,17 @@ public sealed class MainForm : Form
     public MainForm()
     {
         Text = "Night Deck";
+        // A barra de tarefas usa o icone da janela, nao apenas o do executavel.
+        try
+        {
+            string iconFile = Path.Combine(AppContext.BaseDirectory, "assets", "NightDeck.ico");
+            if (File.Exists(iconFile))
+                Icon = new Icon(iconFile);
+            else
+                Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            ShowIcon = true;
+        }
+        catch { /* Mantem o icone padrao caso o arquivo esteja ausente. */ }
         Font = new Font("Segoe UI", 9f);
         MinimumSize = new Size(800, 500);
         WindowState = FormWindowState.Maximized;

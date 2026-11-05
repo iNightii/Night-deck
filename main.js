@@ -17,6 +17,93 @@ function writeConfig(patch) {
   try { fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true }); fs.writeFileSync(CONFIG_PATH, JSON.stringify({ ...readConfig(), ...patch }, null, 2)); } catch (_) {}
 }
 const config = readConfig();
+
+const https = require('https');
+const crypto = require('crypto');
+const { spawn } = require('child_process');
+let updateBusy = false;
+let pendingInstaller = null;
+function getBuildNumber() {
+  try { return Number(JSON.parse(fs.readFileSync(path.join(__dirname, 'build-info.json'), 'utf8').replace(/^\\uFEFF/, '')).run) || 0; }
+  catch (_) { return 0; }
+}
+function getUpdateUrl(url, redirects = 0) {
+  return new Promise((resolve, reject) => {
+    if (redirects > 5) return reject(new Error('Redirecionamentos demais'));
+    const u = new URL(url);
+    if (u.protocol !== 'https:' || !['api.github.com', 'github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com'].includes(u.hostname))
+      return reject(new Error('Origem de download nao permitida'));
+    const req = https.get(url, { headers: { 'User-Agent': 'Night-Deck-Updater', Accept: 'application/vnd.github+json' }, timeout: 30000 }, res => {
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+        res.resume(); resolve(getUpdateUrl(new URL(res.headers.location, url).toString(), redirects + 1)); return;
+      }
+      if (res.statusCode !== 200) { res.resume(); reject(new Error('HTTP ' + res.statusCode)); return; }
+      resolve(res);
+    });
+    req.on('timeout', () => req.destroy(new Error('Tempo limite de download')));
+    req.on('error', reject);
+  });
+}
+async function fetchUpdateBuffer(url, maxBytes) {
+  const res = await getUpdateUrl(url);
+  return new Promise((resolve, reject) => {
+    const chunks = []; let size = 0;
+    res.on('data', chunk => {
+      size += chunk.length;
+      if (size > maxBytes) { res.destroy(new Error('Resposta muito grande')); return; }
+      chunks.push(chunk);
+    });
+    res.on('end', () => resolve(Buffer.concat(chunks)));
+    res.on('error', reject);
+  });
+}
+async function checkNightDeckUpdates() {
+  if (updateBusy || pendingInstaller || !app.isPackaged || process.platform !== 'win32') return;
+  updateBusy = true;
+  try {
+    const release = JSON.parse((await fetchUpdateBuffer('https://api.github.com/repos/iNightii/Night-deck/releases/latest', 500000)).toString('utf8'));
+    const latestBuild = Number(String(release.tag_name || '').match(/^build-(\\d+)$/)?.[1]);
+    if (!latestBuild || latestBuild <= getBuildNumber()) { logLine('Atualizador: sem nova compilacao'); return; }
+    const installer = (release.assets || []).find(a => /^Night-Deck.*\\.exe$/i.test(a.name));
+    const checksum = (release.assets || []).find(a => a.name === installer?.name + '.sha256');
+    if (!installer || !checksum) { logLine('Atualizador: release sem instalador e SHA256'); return; }
+    const hashText = (await fetchUpdateBuffer(checksum.browser_download_url, 8192)).toString('utf8');
+    const expected = hashText.match(/^([a-f0-9]{64})\\s+/i)?.[1]?.toLowerCase();
+    if (!expected) throw new Error('SHA256 invalido');
+    const targetDir = path.join(app.getPath('userData'), 'updates');
+    fs.mkdirSync(targetDir, { recursive: true });
+    const target = path.join(targetDir, 'Night-Deck-update-' + latestBuild + '.exe');
+    const temp = target + '.part';
+    const res = await getUpdateUrl(installer.browser_download_url);
+    const hash = crypto.createHash('sha256');
+    await new Promise((resolve, reject) => {
+      const out = fs.createWriteStream(temp);
+      res.on('data', chunk => hash.update(chunk));
+      res.on('error', reject);
+      out.on('error', reject);
+      out.on('finish', resolve);
+      res.pipe(out);
+    });
+    if (hash.digest('hex') !== expected) { fs.rmSync(temp, { force: true }); throw new Error('SHA256 nao confere'); }
+    fs.renameSync(temp, target);
+    pendingInstaller = target;
+    logLine('Atualizador: compilacao ' + latestBuild + ' verificada e pronta para instalar');
+    // Instala em silencio ao encerrar o programa, sem interromper as contas.
+  } catch (error) { logLine('Atualizador: ' + String(error.message || error)); }
+  finally { updateBusy = false; }
+}
+app.on('quit', () => {
+  if (!pendingInstaller || !fs.existsSync(pendingInstaller)) return;
+  const safePath = pendingInstaller.replace(/'/g, "''");
+  const command = "Start-Sleep -Seconds 3; Start-Process -FilePath '" + safePath + "' -ArgumentList '/S'";
+  try {
+    const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', command], {
+      detached: true, stdio: 'ignore', windowsHide: true
+    });
+    child.unref();
+  } catch (error) { logLine('Atualizador: falha ao iniciar instalador: ' + error.message); }
+});
+
 // Expõe o GC do V8 para coleta periódica nos renderizadores.
 app.commandLine.appendSwitch('js-flags', '--expose-gc');
 // Modo compatibilidade: precisa ser decidido antes do app iniciar.
@@ -928,50 +1015,8 @@ function createWindow() {
   });
   ipcMain.on('hud-zoom', (_, delta) => { const d = Number(delta); if (Number.isFinite(d)) setGlobalZoom(d === 0 ? 100 : globalZoom + Math.max(-20, Math.min(20, d))); });
   ipcMain.on('hud-fullscreen', toggleFullscreen);
-  ipcMain.on('check-updates', () => {
-    // Consulta somente o release publico mais recente. Nao instala nem executa arquivos remotos.
-    const https = require('https');
-    const url = 'https://api.github.com/repos/iNightii/Night-deck/releases/latest';
-    const request = https.get(url, {
-      headers: { 'User-Agent': 'Night-Deck-Update-Checker', 'Accept': 'application/vnd.github+json' },
-      timeout: 10000
-    }, response => {
-      let body = '';
-      response.setEncoding('utf8');
-      response.on('data', chunk => { body += chunk; if (body.length > 250000) response.destroy(); });
-      response.on('end', async () => {
-        try {
-          if (response.statusCode !== 200) throw new Error('GitHub respondeu HTTP ' + response.statusCode);
-          const release = JSON.parse(body);
-          const current = app.getVersion();
-          const match = String(release.tag_name || '').match(/^v?(\\d+)\\.(\\d+)\\.(\\d+)(?:$|[-+])/i);
-          const latest = match ? match.slice(1, 4).map(Number) : null;
-          const installed = current.split('.').slice(0, 3).map(Number);
-          const newer = latest && latest.findIndex((n, i) => n !== installed[i]) >= 0 && latest[latest.findIndex((n, i) => n !== installed[i])] > installed[latest.findIndex((n, i) => n !== installed[i])];
-          const knownCurrent = latest && latest.every((n, i) => n === installed[i]);
-          const message = newer ? 'Nova versao disponivel!'
-            : knownCurrent ? 'Voce ja esta na versao mais recente publicada.'
-            : 'Release encontrado. Confira se ha uma compilacao mais recente.';
-          const result = await dialog.showMessageBox(win, {
-            type: 'info', title: 'Atualizacoes do Night Deck',
-            message,
-            detail: 'Versao instalada: ' + current + '\\nRelease: ' + (release.name || release.tag_name || 'sem nome') +
-              '\\n\\nO programa nao baixa nem instala atualizacoes automaticamente.',
-            buttons: ['Abrir downloads no GitHub', 'Fechar'], defaultId: 0, cancelId: 1
-          });
-          if (result.response === 0) await shell.openExternal('https://github.com/iNightii/Night-deck/releases');
-        } catch (error) {
-          dialog.showMessageBox(win, { type: 'warning', title: 'Atualizacoes do Night Deck',
-            message: 'Nao foi possivel verificar as atualizacoes.', detail: String(error.message || error) });
-        }
-      });
-    });
-    request.on('timeout', () => request.destroy(new Error('Tempo limite da consulta excedido')));
-    request.on('error', error => dialog.showMessageBox(win, {
-      type: 'warning', title: 'Atualizacoes do Night Deck',
-      message: 'Falha ao consultar o GitHub.', detail: String(error.message || error)
-    }));
-  });
+  ipcMain.on('check-updates', () => void checkNightDeckUpdates());
+  ipcMain.on('open-updates-page', () => void shell.openExternal('https://github.com/iNightii/Night-deck/releases'));
 
   ipcMain.on('hud-menu', (_, { name, x, y } = {}) => {
     let template = [];

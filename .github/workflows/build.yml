@@ -9,7 +9,7 @@ on:
       - '!README.md'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -25,10 +25,24 @@ jobs:
           cache: npm
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
+      - name: Identificar compilacao para atualizacao
+        shell: pwsh
+        run: |
+          @{ run = "${{ github.run_number }}"; sha = "${{ github.sha }}" } | ConvertTo-Json | Set-Content -Encoding utf8 build-info.json
       - name: Gerar instalador Windows
         run: npm run build -- --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Publicar release para atualizacao automatica
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $installer = Get-ChildItem dist -Filter '*.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'Instalador nao encontrado' }
+          $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($installer.Name)" | Set-Content -Encoding ascii "dist/$($installer.Name).sha256"
+          gh release create "build-${{ github.run_number }}" $installer.FullName "dist/$($installer.Name).sha256" --repo "${{ github.repository }}" --title "Night Deck build ${{ github.run_number }}" --notes "Instalador automatico da compilacao ${{ github.run_number }}" --latest
       - name: Disponibilizar instalador
         uses: actions/upload-artifact@v5
         with:

@@ -1,0 +1,31 @@
+* { box-sizing: border-box; }
+:root { --bg:#0b1120; --bar:#111827; --card:#172033; --button:#1e293b; --accent:#7c3aed; --text:#f8fafc; --muted:#94a3b8; --border:#334155; --ease:cubic-bezier(.2,.7,.2,1); }
+html, body { margin:0; width:100%; height:100%; overflow:hidden; background:var(--bar); color:var(--text); font-family:"Segoe UI Variable Text","Segoe UI",Arial,sans-serif; -webkit-font-smoothing:antialiased; user-select:none; }
+button { font:inherit; color:var(--text); -webkit-appearance:none; appearance:none; }
+button:focus { outline:none; }
+button:focus-visible { outline:2px solid color-mix(in srgb, var(--accent) 80%, white); outline-offset:1px; }
+.ico { width:12px; height:12px; flex:0 0 auto; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+/* A tela da barra tem exatamente 28px de altura (o main.js posiciona com esse valor). */
+.account-bar { width:100%; height:100%; display:flex; align-items:center; gap:5px; padding:2px 6px 2px 7px; overflow:hidden;
+  border:1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-bottom-color:var(--border); border-radius:7px 7px 0 0;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--bar) 88%, white), var(--bar)); }
+.account-bar:hover { border-color:color-mix(in srgb, var(--accent) 55%, var(--border)); border-bottom-color:var(--border); }
+.status-dot { flex:0 0 9px; width:9px; height:9px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.2), 0 0 8px rgba(34,197,94,.55); transition:background-color .2s var(--ease); }
+.status-dot.off { background:#64748b; box-shadow:none; }
+.account-name { flex:0 1 auto; min-width:40px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; font-weight:700; }
+.account-up { flex:1 1 0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:10px; font-variant-numeric:tabular-nums; }
+.zoom-group { flex:0 0 auto; display:inline-flex; align-items:center; height:21px; padding:0 1px; border-radius:6px; background:color-mix(in srgb, var(--bar) 70%, black); border:1px solid color-mix(in srgb, var(--border) 70%, transparent); }
+.zoom-group .account-action { height:17px; min-width:19px; border-color:transparent; background:transparent; }
+.zoom-group .account-action:hover { background:rgba(255,255,255,.1); border-color:transparent; }
+.account-zoom { min-width:32px; text-align:center; color:var(--muted); font-size:9px; font-weight:600; font-variant-numeric:tabular-nums; }
+.account-action { flex:0 0 auto; height:21px; min-width:23px; padding:0 4px; border:1px solid var(--border); border-radius:6px; background:var(--button); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; line-height:1;
+  transition:background-color .16s var(--ease), border-color .16s var(--ease), transform .12s var(--ease); }
+.account-action:hover { background:color-mix(in srgb, var(--button) 82%, white); border-color:color-mix(in srgb, var(--border) 65%, white); }
+.account-action:active { transform:scale(.92); }
+.account-action[data-action="focus"] { border-color:color-mix(in srgb, var(--accent) 60%, var(--border)); }
+.account-action[data-action="focus"]:hover { background:color-mix(in srgb, var(--button) 70%, var(--accent)); border-color:var(--accent); }
+.account-action[data-action="mute"].on { color:#fcd34d; border-color:color-mix(in srgb, #f59e0b 60%, var(--border)); }
+.account-action[data-action="power"]:hover { background:color-mix(in srgb, #ef4444 55%, var(--button)); border-color:#ef4444; }
+.account-action[data-action="focus"].on { background:var(--accent); border-color:color-mix(in srgb, var(--accent) 70%, white); }
+.account-action[data-action="hide"]:hover { background:color-mix(in srgb, #ef4444 55%, var(--button)); border-color:#ef4444; }
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; } }

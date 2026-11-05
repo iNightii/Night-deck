@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Twitch · Chat</title>
+  <link rel="stylesheet" href="panel.css">
+  <link rel="stylesheet" href="twitch.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="title"><span class="dot"></span><strong>TWITCH · CHAT</strong><span class="ver" id="sum">0 de 4 no chat</span></div>
+    </header>
+
+    <section class="card controls">
+      <label class="switch big"><input type="checkbox" id="enabled"><i></i><span>Presença no chat ligada</span></label>
+      <div class="hint">Mantém a conexão de chat via IRC e também permite abrir um player de vídeo separado para cada conta. Para presença baseada em visualização, clique em <b>Abrir vídeo</b>, entre na Twitch com a conta correspondente e deixe uma transmissão realmente reproduzindo (não basta deixar a página aberta). Cada conta tem cookies próprios.</div>
+    </section>
+
+    <section class="card">
+      <h2>Lives no navegador</h2>
+      <div class="row">
+        <div class="hint grow">Abre todas as lives oficiais que estão no ar em uma aba só do seu navegador. Deixe o painel "Bônus Twitch" aberto na Conta 1 do jogo.</div>
+        <button class="btn" id="openLives">Abrir lives</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>1 · Aplicativo da Twitch (uma vez só)</h2>
+      <div class="hint steps">A Twitch exige um aplicativo para autorizar o login. É grátis e leva um minuto: clique em <b>Abrir console</b> → <b>Registrar seu aplicativo</b> → nome qualquer, <b>URL de redirecionamento OAuth</b> = <code>http://localhost</code>, categoria qualquer, <b>Tipo de cliente</b> = <b>Público</b> → <b>Criar</b>. Copie o <b>ID do cliente</b> e cole abaixo.</div>
+      <div class="row">
+        <label class="field grow"><span>Client ID</span><input type="text" id="clientId" spellcheck="false" autocomplete="off" placeholder="cole aqui o ID do cliente"></label>
+        <button class="btn ghost" id="openConsole">Abrir console</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2 · Contas (a mesma Twitch vinculada em cada conta do PokeIdle)</h2>
+      <div id="slots"></div>
+      <div class="hint">O login abre no seu navegador. Para conectar outra conta Twitch, clique em <b>Copiar link</b> e abra numa janela anônima (ou saia da Twitch no navegador antes).</div>
+      <div class="hint" id="encInfo"></div>
+    </section>
+
+    <section class="card">
+      <h2>3 · Canais oficiais</h2>
+      <textarea id="channels" rows="9" spellcheck="false"></textarea>
+      <div class="foot"><span class="hint" id="chCount"></span><button id="resetCh" class="btn ghost">Restaurar lista</button></div>
+    </section>
+
+    <section class="card">
+      <h2>Registro</h2>
+      <div class="log" id="log"></div>
+    </section>
+  </main>
+  <script src="twitch-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:"Segoe UI Variable Text","Segoe UI",Arial,sans-serif;background:#111827;color:#f8fafc;-webkit-font-smoothing:antialiased}
+.panel{padding:12px;background:linear-gradient(180deg,#151e30,#111827);border:1px solid #334155;border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05);height:100%}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:11px;font-weight:650;letter-spacing:.2px}
+button{font:inherit;transition:background-color .16s cubic-bezier(.2,.7,.2,1),border-color .16s cubic-bezier(.2,.7,.2,1),transform .12s cubic-bezier(.2,.7,.2,1)}
+button:focus{outline:none}
+button:focus-visible,.grid input:focus-visible{outline:2px solid #a78bfa;outline-offset:1px}
+.head button{width:25px;height:25px;border:1px solid #334155;border-radius:7px;background:#1e293b;color:#f8fafc;font-size:17px;line-height:1;cursor:pointer}
+.head button:hover{background:#2b3a52;border-color:#475569}
+.head button:active{transform:scale(.94)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.grid label{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 8px;background:#172033;border:1px solid #334155;border-radius:7px;font-size:10px;font-weight:600;transition:border-color .16s,background-color .16s}
+.grid label:hover{background:#1b2740;border-color:#475569}
+.grid input{width:34px;height:23px;padding:0;border:0;background:transparent;cursor:pointer}
+.grid input::-webkit-color-swatch-wrapper{padding:0}
+.grid input::-webkit-color-swatch{border:1px solid rgba(255,255,255,.22);border-radius:6px}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+.foot button{height:27px;padding:0 10px;border:1px solid #334155;border-radius:7px;background:#1e293b;color:#f8fafc;font-size:10px;font-weight:600;cursor:pointer}
+.foot button:hover{background:#2b3a52;border-color:#475569}
+.foot button:active{transform:translateY(1px) scale(.98)}
+.foot span{font-size:9px;color:#94a3b8}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}

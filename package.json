@@ -1,0 +1,88 @@
+{
+  "name": "night-deck",
+  "version": "1.45.2",
+  "description": "Night Deck — interface Electron original do PokeIdle Multiscreen 1.45.1",
+  "main": "main.js",
+  "author": "Jarbas Junior",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.jarbas.pokeidlemultiscreen",
+    "productName": "PokeIdle Multiscreen",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "index.html",
+      "styles.css",
+      "theme.html",
+      "theme.css",
+      "theme.js",
+      "theme-preload.js",
+      "twitch-preload.js",
+      "panel.css",
+      "twitch-ui.js",
+      "twitch.css",
+      "twitch.html",
+      "twitch-chat.js",
+      "extensions.js",
+      "perf.js",
+      "bar-preload.js",
+      "bar.js",
+      "bar.css",
+      "bar.html",
+      "package.json",
+      "account-preload.js",
+      "extra-features.js",
+      "restock.html",
+      "restock-ui.js",
+      "restock-preload.js",
+      "storage-import.js"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "PokeIdle-Multiscreen-v${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "extraResources": [
+      {
+        "from": "restock-extension",
+        "to": "restock-extension",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "artifactName": "Night-Deck-v${version}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "iNightii",
+        "repo": "Night-deck"
+      }
+    ]
+  },
+  "productName": "Night Deck"
+}

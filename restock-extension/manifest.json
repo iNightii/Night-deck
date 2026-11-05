@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "PokeIdle Multiscreen — Recompra",
+  "version": "1.0.0",
+  "description": "Recompra configurável de pokébolas, revives e poções para o PokeIdle Multiscreen.",
+  "content_scripts": [
+    {
+      "matches": ["https://pokeidle.io/*"],
+      "js": ["recompra.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ]
+}

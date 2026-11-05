@@ -106,10 +106,35 @@ function createExtensionManager({ userData, partitions, session, BrowserWindow, 
       await dialog.showMessageBox(getParent(), { type: 'info', message: 'Não encontrei extensões instaladas no Google Chrome neste usuário.' });
       return;
     }
+    // Pergunta individualmente quais extensões importar, em vez de importar todas.
+    // A lista é ordenada para que a escolha seja previsível.
+    const candidates = [...found.values()].sort((a, b) =>
+      a.meta.name.localeCompare(b.meta.name, 'pt-BR', { sensitivity: 'base' })
+    );
+    const selected = [];
+    for (let i = 0; i < candidates.length; i++) {
+      const item = candidates[i];
+      const choice = await dialog.showMessageBox(getParent(), {
+        type: 'question',
+        title: 'Selecionar extensões do Chrome',
+        message: `Importar "${item.meta.name}"?`,
+        detail: `Extensão ${i + 1} de ${candidates.length}\\nVersão: ${item.meta.version}\\nID: ${item.id}\\n\\nEscolha "Importar" somente para as extensões que deseja usar no Night Deck. "Pular" passa à próxima.`,
+        buttons: ['Importar', 'Pular', 'Cancelar'],
+        defaultId: 1,
+        cancelId: 2,
+        noLink: true
+      });
+      if (choice.response === 2) return;
+      if (choice.response === 0) selected.push(item);
+    }
+    if (!selected.length) {
+      await dialog.showMessageBox(getParent(), { type: 'info', message: 'Nenhuma extensão selecionada para importar.' });
+      return;
+    }
     const already = new Set(entries.map(e => path.resolve(e.path)));
     const importedRoot = path.join(userData, 'chrome-imported');
     let added = 0, skipped = 0;
-    for (const item of found.values()) {
+    for (const item of selected) {
       const dest = path.join(importedRoot, item.id, item.meta.version || 'current');
       if (already.has(path.resolve(dest))) { skipped++; continue; }
       try {

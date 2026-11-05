@@ -925,6 +925,51 @@ function createWindow() {
   });
   ipcMain.on('hud-zoom', (_, delta) => { const d = Number(delta); if (Number.isFinite(d)) setGlobalZoom(d === 0 ? 100 : globalZoom + Math.max(-20, Math.min(20, d))); });
   ipcMain.on('hud-fullscreen', toggleFullscreen);
+  ipcMain.on('check-updates', () => {
+    // Consulta somente o release publico mais recente. Nao instala nem executa arquivos remotos.
+    const https = require('https');
+    const url = 'https://api.github.com/repos/iNightii/Night-deck/releases/latest';
+    const request = https.get(url, {
+      headers: { 'User-Agent': 'Night-Deck-Update-Checker', 'Accept': 'application/vnd.github+json' },
+      timeout: 10000
+    }, response => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', chunk => { body += chunk; if (body.length > 250000) response.destroy(); });
+      response.on('end', async () => {
+        try {
+          if (response.statusCode !== 200) throw new Error('GitHub respondeu HTTP ' + response.statusCode);
+          const release = JSON.parse(body);
+          const current = app.getVersion();
+          const match = String(release.tag_name || '').match(/^v?(\\d+)\\.(\\d+)\\.(\\d+)(?:$|[-+])/i);
+          const latest = match ? match.slice(1, 4).map(Number) : null;
+          const installed = current.split('.').slice(0, 3).map(Number);
+          const newer = latest && latest.findIndex((n, i) => n !== installed[i]) >= 0 && latest[latest.findIndex((n, i) => n !== installed[i])] > installed[latest.findIndex((n, i) => n !== installed[i])];
+          const knownCurrent = latest && latest.every((n, i) => n === installed[i]);
+          const message = newer ? 'Nova versao disponivel!'
+            : knownCurrent ? 'Voce ja esta na versao mais recente publicada.'
+            : 'Release encontrado. Confira se ha uma compilacao mais recente.';
+          const result = await dialog.showMessageBox(win, {
+            type: 'info', title: 'Atualizacoes do Night Deck',
+            message,
+            detail: 'Versao instalada: ' + current + '\\nRelease: ' + (release.name || release.tag_name || 'sem nome') +
+              '\\n\\nO programa nao baixa nem instala atualizacoes automaticamente.',
+            buttons: ['Abrir downloads no GitHub', 'Fechar'], defaultId: 0, cancelId: 1
+          });
+          if (result.response === 0) await shell.openExternal('https://github.com/iNightii/Night-deck/releases');
+        } catch (error) {
+          dialog.showMessageBox(win, { type: 'warning', title: 'Atualizacoes do Night Deck',
+            message: 'Nao foi possivel verificar as atualizacoes.', detail: String(error.message || error) });
+        }
+      });
+    });
+    request.on('timeout', () => request.destroy(new Error('Tempo limite da consulta excedido')));
+    request.on('error', error => dialog.showMessageBox(win, {
+      type: 'warning', title: 'Atualizacoes do Night Deck',
+      message: 'Falha ao consultar o GitHub.', detail: String(error.message || error)
+    }));
+  });
+
   ipcMain.on('hud-menu', (_, { name, x, y } = {}) => {
     let template = [];
     if (name === 'perf') {

@@ -24,7 +24,7 @@ const { spawn } = require('child_process');
 let updateBusy = false;
 let pendingInstaller = null;
 function getBuildNumber() {
-  try { return Number(JSON.parse(fs.readFileSync(path.join(__dirname, 'build-info.json'), 'utf8').replace(/^\\uFEFF/, '')).run) || 0; }
+  try { return Number(JSON.parse(fs.readFileSync(path.join(__dirname, 'build-info.json'), 'utf8').replace(/^\uFEFF/, '')).run) || 0; }
   catch (_) { return 0; }
 }
 function getUpdateUrl(url, redirects = 0) {
@@ -62,13 +62,13 @@ async function checkNightDeckUpdates() {
   updateBusy = true;
   try {
     const release = JSON.parse((await fetchUpdateBuffer('https://api.github.com/repos/iNightii/Night-deck/releases/latest', 500000)).toString('utf8'));
-    const latestBuild = Number(String(release.tag_name || '').match(/^build-(\\d+)$/)?.[1]);
+    const latestBuild = Number(String(release.tag_name || '').match(/^build-(\d+)$/)?.[1]);
     if (!latestBuild || latestBuild <= getBuildNumber()) { logLine('Atualizador: sem nova compilacao'); return; }
-    const installer = (release.assets || []).find(a => /^Night-Deck.*\\.exe$/i.test(a.name));
+    const installer = (release.assets || []).find(a => /^Night-Deck.*\.exe$/i.test(a.name));
     const checksum = (release.assets || []).find(a => a.name === installer?.name + '.sha256');
     if (!installer || !checksum) { logLine('Atualizador: release sem instalador e SHA256'); return; }
     const hashText = (await fetchUpdateBuffer(checksum.browser_download_url, 8192)).toString('utf8');
-    const expected = hashText.match(/^([a-f0-9]{64})\\s+/i)?.[1]?.toLowerCase();
+    const expected = hashText.match(/^([a-f0-9]{64})\s+/i)?.[1]?.toLowerCase();
     if (!expected) throw new Error('SHA256 invalido');
     const targetDir = path.join(app.getPath('userData'), 'updates');
     fs.mkdirSync(targetDir, { recursive: true });

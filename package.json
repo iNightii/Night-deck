@@ -59,7 +59,7 @@
           ]
         }
       ],
-      "artifactName": "PokeIdle-Multiscreen-v${version}.${ext}"
+      "artifactName": "Night-Deck-v${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,

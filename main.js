@@ -912,8 +912,7 @@ function createWindow() {
     const i = Number(index);
     if (!barViews.get(i) || event.sender !== barViews.get(i).webContents) return;
     const items = {
-      kick: [['Abrir Kick (live e chat)', 'kick'], ['Parar lives Kick', 'kick-stop']],
-      tools: [['Consultar TopIdle', 'topidle'], ['Alternar Rotom Sniper', 'sniper']],
+      extras: [['Kick — abrir live e chat', 'kick'], ['Kick — parar lives', 'kick-stop'], ['TopIdle — consultar voto', 'topidle'], ['Rotom Sniper — alternar', 'sniper']],
       account: [['Recarregar conta', 'reload'], ['Expandir / restaurar', 'focus'], ['Ocultar conta', 'hide'], ['Desligar conta', 'power']]
     };
     if (!Object.prototype.hasOwnProperty.call(items, name)) return;

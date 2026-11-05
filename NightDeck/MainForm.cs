@@ -272,15 +272,80 @@ public sealed class MainForm : Form
         if (key != null) buttons[key] = b;
     }
 
-    private Button PaneButton(string label, Action action, string tooltip)
+    private sealed class RoundedPaneButton : Button
     {
-        var b = NightButton(label, 23);
-        b.Font = new Font("Segoe UI Symbol", 9f);
-        b.Padding = new Padding(3, 0, 3, 0);
-        b.Margin = new Padding(2, 2, 2, 2);
-        b.Click += (_, _) => action();
-        new ToolTip().SetToolTip(b, tooltip);
-        return b;
+        public string Symbol { get; set; } = "";
+        public RoundedPaneButton()
+        {
+            FlatStyle = FlatStyle.Flat;
+            FlatAppearance.BorderSize = 0;
+            BackColor = Color.FromArgb(30, 41, 59);
+            ForeColor = Color.FromArgb(226, 232, 240);
+            Cursor = Cursors.Hand;
+            Size = new Size(30, 25);
+            Margin = new Padding(3, 1, 3, 1);
+            TabStop = true;
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+        }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.Clear(Parent?.BackColor ?? Color.FromArgb(17, 24, 39));
+            using var shape = new System.Drawing.Drawing2D.GraphicsPath();
+            int radius = 7, w = Width - 1, h = Height - 1;
+            shape.AddArc(0, 0, radius * 2, radius * 2, 180, 90);
+            shape.AddArc(w - radius * 2, 0, radius * 2, radius * 2, 270, 90);
+            shape.AddArc(w - radius * 2, h - radius * 2, radius * 2, radius * 2, 0, 90);
+            shape.AddArc(0, h - radius * 2, radius * 2, radius * 2, 90, 90);
+            shape.CloseFigure();
+            using var bg = new SolidBrush(ClientRectangle.Contains(PointToClient(Cursor.Position)) ? Color.FromArgb(55, 65, 90) : BackColor);
+            using var border = new Pen(Color.FromArgb(71, 85, 105), 1f);
+            g.FillPath(bg, shape);
+            g.DrawPath(border, shape);
+            using var pen = new Pen(ForeColor, 1.7f) { StartCap = System.Drawing.Drawing2D.LineCap.Round, EndCap = System.Drawing.Drawing2D.LineCap.Round, LineJoin = System.Drawing.Drawing2D.LineJoin.Round };
+            var cx = Width / 2f; var cy = Height / 2f;
+            switch (Symbol)
+            {
+                case "minus": g.DrawLine(pen, cx - 5, cy, cx + 5, cy); break;
+                case "plus": g.DrawLine(pen, cx - 5, cy, cx + 5, cy); g.DrawLine(pen, cx, cy - 5, cx, cy + 5); break;
+                case "cart":
+                    g.DrawLine(pen, cx - 7, cy - 6, cx - 5, cy - 6);
+                    g.DrawLine(pen, cx - 5, cy - 6, cx - 3, cy + 4);
+                    g.DrawLine(pen, cx - 3, cy + 4, cx + 6, cy + 4);
+                    g.DrawLine(pen, cx - 4, cy - 3, cx + 7, cy - 3);
+                    g.DrawLine(pen, cx + 7, cy - 3, cx + 5, cy + 2);
+                    g.DrawLine(pen, cx + 5, cy + 2, cx - 3, cy + 2);
+                    g.FillEllipse(Brushes.White, cx - 3, cy + 6, 2.5f, 2.5f);
+                    g.FillEllipse(Brushes.White, cx + 4, cy + 6, 2.5f, 2.5f);
+                    break;
+                case "reload":
+                    g.DrawArc(pen, cx - 6, cy - 6, 12, 12, 45, 285);
+                    g.DrawLines(pen, new[] { new PointF(cx + 5, cy - 5), new PointF(cx + 7, cy - 1), new PointF(cx + 2, cy - 1) });
+                    break;
+                case "focus":
+                    g.DrawLine(pen, cx - 7, cy - 2, cx - 7, cy - 7); g.DrawLine(pen, cx - 7, cy - 7, cx - 2, cy - 7);
+                    g.DrawLine(pen, cx + 2, cy - 7, cx + 7, cy - 7); g.DrawLine(pen, cx + 7, cy - 7, cx + 7, cy - 2);
+                    g.DrawLine(pen, cx - 7, cy + 2, cx - 7, cy + 7); g.DrawLine(pen, cx - 7, cy + 7, cx - 2, cy + 7);
+                    g.DrawLine(pen, cx + 2, cy + 7, cx + 7, cy + 7); g.DrawLine(pen, cx + 7, cy + 7, cx + 7, cy + 2);
+                    break;
+                case "hide":
+                    g.DrawEllipse(pen, cx - 7, cy - 4, 14, 8);
+                    g.FillEllipse(new SolidBrush(ForeColor), cx - 2, cy - 2, 4, 4);
+                    g.DrawLine(pen, cx - 8, cy + 7, cx + 8, cy - 7);
+                    break;
+            }
+        }
+        protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); Invalidate(); }
+        protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); Invalidate(); }
+    }
+
+    private Button PaneButton(string symbol, Action action, string tooltip)
+    {
+        var button = new RoundedPaneButton { Symbol = symbol };
+        button.Click += (_, _) => action();
+        new ToolTip().SetToolTip(button, tooltip);
+        return button;
     }
 
     private void CreatePane(int i)
@@ -326,13 +391,13 @@ public sealed class MainForm : Form
             Font = new Font("Segoe UI", 8f),
             Padding = new Padding(1, 6, 1, 0)
         };
-        bar.Controls.Add(PaneButton("−", () => { ChangeZoom(i, -10); zoomText.Text = $"{zoom[i]}%"; }, "Diminuir zoom"));
+        bar.Controls.Add(PaneButton("minus", () => { ChangeZoom(i, -10); zoomText.Text = $"{zoom[i]}%"; }, "Diminuir zoom"));
         bar.Controls.Add(zoomText);
-        bar.Controls.Add(PaneButton("+", () => { ChangeZoom(i, 10); zoomText.Text = $"{zoom[i]}%"; }, "Aumentar zoom"));
-        bar.Controls.Add(PaneButton("🛒", ConfigureRestock, "Configurar Restock"));
-        bar.Controls.Add(PaneButton("⟳", () => browsers[i].CoreWebView2?.Reload(), "Recarregar conta"));
-        bar.Controls.Add(PaneButton("⛶", () => { focused = focused == i ? null : i; Rebuild(); }, "Expandir ou restaurar conta"));
-        bar.Controls.Add(PaneButton("◌", () => { visible[i] = false; focused = null; Rebuild(); SaveUiSettings(); }, "Ocultar conta"));
+        bar.Controls.Add(PaneButton("plus", () => { ChangeZoom(i, 10); zoomText.Text = $"{zoom[i]}%"; }, "Aumentar zoom"));
+        bar.Controls.Add(PaneButton("cart", ConfigureRestock, "Configurar Restock"));
+        bar.Controls.Add(PaneButton("reload", () => browsers[i].CoreWebView2?.Reload(), "Recarregar conta"));
+        bar.Controls.Add(PaneButton("focus", () => { focused = focused == i ? null : i; Rebuild(); }, "Expandir ou restaurar conta"));
+        bar.Controls.Add(PaneButton("hide", () => { visible[i] = false; focused = null; Rebuild(); SaveUiSettings(); }, "Ocultar conta"));
         var browser = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(15, 15, 22) };
         panel.Controls.Add(browser);
         panel.Controls.Add(bar);

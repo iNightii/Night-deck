@@ -14,7 +14,7 @@ button:hover{background:#334155;border-color:#7c3aed}button:active{background:#5
 button.selected{background:#5b21b6;border-color:#c4b5fd;color:#fff;box-shadow:inset 0 -3px 0 #ddd6fe,0 0 0 1px #8b5cf6}
 button.selected::after{content:"✓";font-size:11px;font-weight:800;color:#fff;margin-left:2px}
 button.selected[data-account]::after{content:"●";font-size:9px}
-button.selected[data-cmd="3"]{background:#065f46;border-color:#34d399;box-shadow:inset 0 -3px 0 #6ee7b7}
+button.selected[data-cmd="3"],button.selected[data-cmd="5"]{background:#065f46;border-color:#34d399;box-shadow:inset 0 -3px 0 #6ee7b7}
 button:focus-visible{outline:2px solid #ddd6fe;outline-offset:2px}.ico{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 @media(max-width:1200px){.lbl{display:none}.brand{margin-right:0}}
 </style></head><body><header>
@@ -79,7 +79,11 @@ window.chrome?.webview?.addEventListener('message', e => {
   const echo = document.querySelector('button[data-cmd="3"]');
   echo.classList.toggle('selected', !!state.echoEnabled);
   echo.setAttribute('aria-pressed', String(!!state.echoEnabled));
-  echo.title = state.echoEnabled ? 'Echo ligado — clique para desligar' : 'Echo desligado — clique para ligar';
+  echo.title = state.echoEnabled ? 'Echo LIGADO — clique para desligar' : 'Echo DESLIGADO — clique para ligar';
+  const restock = document.querySelector('button[data-cmd="5"]');
+  restock.classList.toggle('selected', !!state.restockEnabled);
+  restock.setAttribute('aria-pressed', String(!!state.restockEnabled));
+  restock.title = state.restockEnabled ? 'Restock ativo em pelo menos uma conta — configurar' : 'Restock desativado — configurar';
   document.getElementById('globalZoomLabel').textContent = state.zoom + '%';
 });
 send({type:'ready'});

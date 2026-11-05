@@ -23,6 +23,7 @@ public sealed class MainForm : Form
     private bool echoEnabled;
     private string layout = "2x2";
     private int? focused;
+    private string themeBar = "#111827", themeButton = "#1e293b", themeAccent = "#7c3aed", themeBorder = "#334155", themeBackground = "#0b1120";
     private string UiSettingsPath => Path.Combine(dataPath, "ui-settings.json");
 
     public MainForm()
@@ -67,6 +68,7 @@ public sealed class MainForm : Form
         AddButton("⌕  Onde caçar", () => OpenSite("https://pokeidle-ferramentas.pages.dev/#hunt", "Onde caçar"));
         AddButton("↻  Atualizações", () => _ = AutoUpdater.CheckAsync(this, manual: true));
         Rebuild();
+        ApplyTheme();
         Shown += async (_, _) => { await InitializeClassicToolbar(); await InitializeBrowsers(); _ = AutoUpdater.CheckAsync(this); };
     }
 
@@ -94,6 +96,7 @@ public sealed class MainForm : Form
                         var root = message.RootElement;
                         string? kind = root.GetProperty("type").GetString();
                         if (kind == "ready") { UpdateClassicToolbar(); return; }
+                        if (kind == "theme") { ConfigureTheme(); return; }
                         if (kind == "zoom")
                         {
                             int delta = root.GetProperty("delta").GetInt32();
@@ -180,10 +183,57 @@ public sealed class MainForm : Form
         UpdateClassicToolbar();
     }
 
+    private void ConfigureTheme()
+    {
+        using var dialog = new Form { Text = "Cores do Night Deck", Width = 400, Height = 370, StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false };
+        var panel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, Padding = new Padding(12) };
+        dialog.Controls.Add(panel);
+        void Pick(string label, Func<string> read, Action<string> write)
+        {
+            var row = new FlowLayoutPanel { Width = 350, Height = 44, WrapContents = false };
+            row.Controls.Add(new Label { Text = label, Width = 170, Height = 30, TextAlign = ContentAlignment.MiddleLeft });
+            var button = new Button { Text = "Escolher cor", Width = 150, Height = 30, BackColor = ColorTranslator.FromHtml(read()) };
+            button.Click += (_, _) =>
+            {
+                using var picker = new ColorDialog { Color = ColorTranslator.FromHtml(read()), FullOpen = true, AnyColor = true };
+                if (picker.ShowDialog(dialog) != DialogResult.OK) return;
+                write(ColorTranslator.ToHtml(picker.Color));
+                button.BackColor = picker.Color;
+                ApplyTheme(); SaveUiSettings();
+            };
+            row.Controls.Add(button); panel.Controls.Add(row);
+        }
+        Pick("Barra superior", () => themeBar, v => themeBar = v);
+        Pick("Botões", () => themeButton, v => themeButton = v);
+        Pick("Destaque", () => themeAccent, v => themeAccent = v);
+        Pick("Bordas", () => themeBorder, v => themeBorder = v);
+        Pick("Fundo", () => themeBackground, v => themeBackground = v);
+        var reset = new Button { Text = "Restaurar cores padrão", Width = 345, Height = 32 };
+        reset.Click += (_, _) =>
+        {
+            themeBar = "#111827"; themeButton = "#1e293b"; themeAccent = "#7c3aed";
+            themeBorder = "#334155"; themeBackground = "#0b1120";
+            ApplyTheme(); SaveUiSettings(); dialog.Close();
+        };
+        panel.Controls.Add(reset);
+        dialog.ShowDialog(this);
+    }
+
+    private void ApplyTheme()
+    {
+        BackColor = ColorTranslator.FromHtml(themeBackground);
+        grid.BackColor = BackColor;
+        toolbar.BackColor = ColorTranslator.FromHtml(themeBar);
+        classicToolbar.DefaultBackgroundColor = ColorTranslator.FromHtml(themeBar);
+        foreach (var pane in panes)
+            if (pane != null) pane.BackColor = ColorTranslator.FromHtml(themeBorder);
+        UpdateClassicToolbar();
+    }
+
     private void UpdateClassicToolbar()
     {
         if (classicToolbar.CoreWebView2 == null) return;
-        var state = JsonSerializer.Serialize(new { type = "state", focused, visible, zoom = zoom[0], layout, echoEnabled, restockEnabled = restock.Any(c => c?["on"]?.GetValue<bool>() == true) });
+        var state = JsonSerializer.Serialize(new { type = "state", focused, visible, zoom = zoom[0], layout, echoEnabled, themeBar, themeButton, themeAccent, themeBorder, themeBackground, restockEnabled = restock.Any(c => c?["on"]?.GetValue<bool>() == true) });
         classicToolbar.CoreWebView2.PostWebMessageAsJson(state);
     }
 
@@ -532,6 +582,10 @@ public sealed class MainForm : Form
             if (!File.Exists(UiSettingsPath)) return;
             using var document = JsonDocument.Parse(File.ReadAllText(UiSettingsPath));
             var root = document.RootElement;
+            string ReadTheme(string key, string fallback) => root.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String && System.Text.RegularExpressions.Regex.IsMatch(value.GetString() ?? "", "^#[0-9a-fA-F]{6}$") ? value.GetString()! : fallback;
+            themeBar = ReadTheme("themeBar", themeBar); themeButton = ReadTheme("themeButton", themeButton);
+            themeAccent = ReadTheme("themeAccent", themeAccent); themeBorder = ReadTheme("themeBorder", themeBorder);
+            themeBackground = ReadTheme("themeBackground", themeBackground);
             if (root.TryGetProperty("layout", out var savedLayout))
             {
                 var value = savedLayout.GetString();
@@ -557,7 +611,7 @@ public sealed class MainForm : Form
     {
         try
         {
-            var settings = new { layout, zoom, visible };
+            var settings = new { layout, zoom, visible, themeBar, themeButton, themeAccent, themeBorder, themeBackground };
             File.WriteAllText(UiSettingsPath, JsonSerializer.Serialize(settings));
         }
         catch { /* Falha de escrita nao deve interromper o jogo. */ }

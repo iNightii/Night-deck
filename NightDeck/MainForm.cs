@@ -183,7 +183,7 @@ public sealed class MainForm : Form
     private void UpdateClassicToolbar()
     {
         if (classicToolbar.CoreWebView2 == null) return;
-        var state = JsonSerializer.Serialize(new { type = "state", focused, visible, zoom = zoom[0], layout, echoEnabled });
+        var state = JsonSerializer.Serialize(new { type = "state", focused, visible, zoom = zoom[0], layout, echoEnabled, restockEnabled = restock.Any(c => c?["on"]?.GetValue<bool>() == true) });
         classicToolbar.CoreWebView2.PostWebMessageAsJson(state);
     }
 
@@ -447,6 +447,7 @@ public sealed class MainForm : Form
             restock[i] = c;
             File.WriteAllText(Path.Combine(dataPath, $"restock-{i + 1}.json"), c.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
             await ApplyRestock(i);
+            UpdateClassicToolbar();
             MessageBox.Show($"Configuração salva na conta {i + 1}.", "Restock");
         };
         p.Controls.Add(save);

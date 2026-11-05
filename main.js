@@ -733,6 +733,9 @@ function createWindow() {
       { type: 'separator' },
       { label: 'Tela cheia', accelerator: 'F11', click: toggleFullscreen },
     ]},
+    { label: 'Atualizações', submenu: [
+      { label: 'Verificar atualizações / abrir downloads', click: () => shell.openExternal('https://github.com/iNightii/Night-deck/releases') }
+    ]},
     { label: 'Ajuda', submenu: [
       { label: 'Modo compatibilidade (sem aceleração de GPU)', type: 'checkbox', checked: !!config.disableGpu, click: async item => {
         const r = await dialog.showMessageBox(win, {

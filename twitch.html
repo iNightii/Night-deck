@@ -16,7 +16,7 @@
 
     <section class="card controls">
       <label class="switch big"><input type="checkbox" id="enabled"><i></i><span>Presença no chat ligada</span></label>
-      <div class="hint">Mantém a conexão de chat via IRC e também permite abrir um player de vídeo separado para cada conta. Para presença baseada em visualização, clique em <b>Abrir vídeo</b>, entre na Twitch com a conta correspondente e deixe uma transmissão realmente reproduzindo (não basta deixar a página aberta). Cada conta tem cookies próprios.</div>
+
     </section>
 
     <section class="card">
@@ -28,23 +28,7 @@
     </section>
 
     <section class="card">
-      <h2>1 · Aplicativo da Twitch (uma vez só)</h2>
-      <div class="hint steps">A Twitch exige um aplicativo para autorizar o login. É grátis e leva um minuto: clique em <b>Abrir console</b> → <b>Registrar seu aplicativo</b> → nome qualquer, <b>URL de redirecionamento OAuth</b> = <code>http://localhost</code>, categoria qualquer, <b>Tipo de cliente</b> = <b>Público</b> → <b>Criar</b>. Copie o <b>ID do cliente</b> e cole abaixo.</div>
-      <div class="row">
-        <label class="field grow"><span>Client ID</span><input type="text" id="clientId" spellcheck="false" autocomplete="off" placeholder="cole aqui o ID do cliente"></label>
-        <button class="btn ghost" id="openConsole">Abrir console</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>2 · Contas (a mesma Twitch vinculada em cada conta do PokeIdle)</h2>
-      <div id="slots"></div>
-      <div class="hint">O login abre no seu navegador. Para conectar outra conta Twitch, clique em <b>Copiar link</b> e abra numa janela anônima (ou saia da Twitch no navegador antes).</div>
-      <div class="hint" id="encInfo"></div>
-    </section>
-
-    <section class="card">
-      <h2>3 · Canais oficiais</h2>
+      <h2>Canais oficiais</h2>
       <textarea id="channels" rows="9" spellcheck="false"></textarea>
       <div class="foot"><span class="hint" id="chCount"></span><button id="resetCh" class="btn ghost">Restaurar lista</button></div>
     </section>

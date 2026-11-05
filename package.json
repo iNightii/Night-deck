@@ -21,6 +21,7 @@
     },
     "files": [
       "main.js",
+      "build-info.json",
       "preload.js",
       "renderer.js",
       "index.html",

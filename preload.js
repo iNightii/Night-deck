@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('pokeidle', {
   reloadAll: () => ipcRenderer.send('reload-all'),
+  checkUpdates: () => ipcRenderer.send('check-updates'),
   openExternal: () => ipcRenderer.send('open-external'),
   openTwitchChat: () => ipcRenderer.send('open-twitch-chat'),
   toggleEcho: () => ipcRenderer.send('echo-toggle'),

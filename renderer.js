@@ -82,6 +82,7 @@ function setLayoutActive(mode) {
 
 // ---------- Botões ----------
 $('reloadAll').onclick = () => window.pokeidle.reloadAll();
+$('checkUpdates').onclick = () => window.pokeidle.checkUpdates();
 $('openExternal').onclick = () => window.pokeidle.openExternal();
 $('openHuntingGuide').onclick = () => window.pokeidle.openHuntingGuide();
 $('layoutGrid').onclick = () => window.pokeidle.setLayout('grid');
